@@ -443,58 +443,286 @@
     <script>
 
         // =============================================
-        // ОБРАБОТКА ФОРМЫ
-        // =============================================
+// СВАДЕБНЫЙ САЙТ - РАДМИР & АДЕЛЯ
+// Интеграция с Google Sheets
+// =============================================
 
-        const telegramSender = new TelegramSender();
+(function() {
+    // ========== КОНФИГУРАЦИЯ ==========
+    // ⚠️ ЗАМЕНИТЕ ЭТОТ URL НА ВАШ URL ИЗ APPS SCRIPT ⚠️
+    const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbz9iv_o0h921m9lVCwQnUQpteaKkxIZbJlJxpAZrgFhLNtYVu1InmAO9WSiaVHk1bZF/exec';
+    
+    let isSubmitting = false;
+    
+    // ========== БАЗОВЫЕ СТИЛИ АНИМАЦИЙ ==========
+    const coreStyles = document.createElement('style');
+    coreStyles.textContent = `
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    `;
+    document.head.appendChild(coreStyles);
+    
+    // ========== УНИВЕРСАЛЬНОЕ МОДАЛЬНОЕ ОКНО ==========
+    function showModal(title, message, isError = false) {
+        const existingModal = document.getElementById('customModal');
+        if (existingModal) existingModal.remove();
 
-        document.getElementById('weddingForm').addEventListener('submit', async (e) => {
+        const modal = document.createElement('div');
+        modal.id = 'customModal';
+        modal.style.cssText = `
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(4px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 10000;
+            animation: fadeIn 0.3s ease;
+        `;
+
+        const icon = isError ? '✕' : '✓';
+        const iconColor = isError ? '#c62828' : '#2e7d32';
+        const bgIconColor = isError ? '#ffebee' : '#e8f5e9';
+        const borderColor = isError ? '#c62828' : '#2e7d32';
+
+        modal.innerHTML = `
+            <div style="
+                background: #ffffff;
+                border-radius: 16px;
+                padding: 32px 40px;
+                max-width: 380px;
+                width: 90%;
+                text-align: center;
+                box-shadow: 0 20px 35px rgba(0, 0, 0, 0.15);
+                animation: slideUp 0.3s ease;
+                border-top: 3px solid ${borderColor};
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            ">
+                <div style="
+                    width: 60px;
+                    height: 60px;
+                    border-radius: 50%;
+                    background: ${bgIconColor};
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    margin: 0 auto 20px auto;
+                ">
+                    <div style="
+                        font-size: 32px;
+                        font-weight: 400;
+                        color: ${iconColor};
+                        line-height: 1;
+                    ">${icon}</div>
+                </div>
+                <h3 style="
+                    font-size: 24px;
+                    font-weight: 500;
+                    color: #1a1a1a;
+                    margin-bottom: 12px;
+                    letter-spacing: -0.3px;
+                ">${title}</h3>
+                <p style="
+                    font-size: 16px;
+                    color: #555555;
+                    margin-bottom: 28px;
+                    line-height: 1.5;
+                ">${message}</p>
+                <button onclick="this.closest('#customModal').remove()" style="
+                    background: #f5f5f5;
+                    color: #333333;
+                    border: none;
+                    padding: 12px 32px;
+                    border-radius: 40px;
+                    font-family: inherit;
+                    font-size: 15px;
+                    font-weight: 500;
+                    cursor: pointer;
+                    transition: all 0.2s ease;
+                " onmouseover="this.style.background='#e8e8e8'" onmouseout="this.style.background='#f5f5f5'">
+                    Закрыть
+                </button>
+            </div>
+        `;
+
+        document.body.appendChild(modal);
+
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) modal.remove();
+        });
+
+        if (!isError) {
+            setTimeout(() => {
+                if (modal.parentElement) modal.remove();
+            }, 4000);
+        }
+    }
+    
+    // ========== МОДАЛЬНОЕ ОКНО ЗАГРУЗКИ ==========
+    function showLoadingModal() {
+        const existingLoading = document.getElementById('loadingModal');
+        if (existingLoading) existingLoading.remove();
+        
+        const loadingModal = document.createElement('div');
+        loadingModal.id = 'loadingModal';
+        loadingModal.style.cssText = `
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(3px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+        `;
+        loadingModal.innerHTML = `
+            <div style="
+                background: white;
+                border-radius: 16px;
+                padding: 32px 40px;
+                text-align: center;
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            ">
+                <div style="
+                    width: 50px;
+                    height: 50px;
+                    border: 3px solid #e0e0e0;
+                    border-top-color: #b8860b;
+                    border-radius: 50%;
+                    margin: 0 auto 20px;
+                    animation: spin 1s linear infinite;
+                "></div>
+                <p style="
+                    font-size: 15px;
+                    color: #5a4c3e;
+                    margin: 0;
+                    font-weight: 500;
+                ">Отправка ответа...</p>
+            </div>
+        `;
+        document.body.appendChild(loadingModal);
+        return loadingModal;
+    }
+    
+    // ========== ОБРАБОТКА ФОРМЫ ==========
+    async function sendToGoogleSheets(formData) {
+        const formBody = new URLSearchParams();
+        formBody.append('name', formData.name);
+        formBody.append('guests', formData.guests);
+        formBody.append('attendance', formData.attendance);
+        if (formData.message) formBody.append('message', formData.message);
+        
+        const response = await fetch(SCRIPT_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: formBody.toString()
+        });
+        
+        const result = await response.json();
+        return result;
+    }
+    
+    // Инициализация формы
+    function initRSVPForm() {
+        const form = document.getElementById('weddingForm');
+        if (!form) return;
+        
+        form.addEventListener('submit', async (e) => {
             e.preventDefault();
+            
+            if (isSubmitting) return;
             
             const submitBtn = document.getElementById('submitBtn');
             const originalText = submitBtn.textContent;
             
-            // Блокируем кнопку на время отправки
+            // Получаем данные формы
+            const name = document.getElementById('name')?.value.trim() || '';
+            const guests = document.getElementById('guests')?.value || '2';
+            const attendance = document.getElementById('attendance')?.value || '';
+            const message = document.getElementById('message')?.value.trim() || '';
+            
+            // Валидация
+            if (!name) {
+                showModal('Ошибка', 'Пожалуйста, введите ваше имя', true);
+                document.getElementById('name')?.focus();
+                return;
+            }
+            
+            if (!attendance) {
+                showModal('Ошибка', 'Пожалуйста, выберите вариант присутствия', true);
+                return;
+            }
+            
+            // Блокируем кнопку
+            isSubmitting = true;
             submitBtn.disabled = true;
             submitBtn.textContent = 'Отправка...';
-            telegramSender.showNotification('Отправляем ваш ответ...', 'loading');
+            
+            const loadingModal = showLoadingModal();
             
             try {
-                const formData = {
-                    name: document.getElementById('name').value,
-                    email: document.getElementById('email').value,
-                    phone: document.getElementById('phone').value,
-                    guests: document.getElementById('guests').value,
-                    attendance: document.getElementById('attendance').value,
-                    alcohol: document.getElementById('alcohol').value,
-                    allergies: document.getElementById('allergies').value,
-                    message: document.getElementById('message').value
-                };
+                const formData = { name, guests, attendance, message };
+                const result = await sendToGoogleSheets(formData);
                 
-                console.log('🟡 Начинаем отправку формы...');
-                const success = await telegramSender.sendFormData(formData);
+                loadingModal.remove();
                 
-                if (success) {
-                    telegramSender.showNotification('✅ Спасибо! Ваш ответ отправлен организаторам.', 'success');
-                    e.target.reset();
+                if (result.result === 'success') {
+                    let responseMessage = '';
+                    if (attendance === 'yes') {
+                        responseMessage = `Спасибо, ${name}! Мы будем ждать вас на нашей свадьбе 1 августа 2026 года! 🎉`;
+                    } else if (attendance === 'no') {
+                        responseMessage = `Спасибо за ответ, ${name}! Очень жаль, что вы не сможете быть с нами.`;
+                    } else {
+                        responseMessage = `Спасибо, ${name}! Мы надеемся, что вы сможете присоединиться к нам.`;
+                    }
+                    showModal('Ответ отправлен!', responseMessage, false);
+                    form.reset();
+                    // Сброс выбранного значения в select
+                    const guestsSelect = document.getElementById('guests');
+                    if (guestsSelect) guestsSelect.value = '2';
                 } else {
-                    telegramSender.showNotification('❌ Ошибка отправки. Пожалуйста, попробуйте еще раз или свяжитесь с нами напрямую.', 'error');
+                    throw new Error(result.message || 'Ошибка отправки');
                 }
             } catch (error) {
-                console.error('💥 Критическая ошибка:', error);
-                telegramSender.showNotification('❌ Произошла ошибка. Пожалуйста, свяжитесь с нами напрямую.', 'error');
+                loadingModal.remove();
+                showModal('Ошибка', error.message || 'Произошла ошибка при отправке. Пожалуйста, попробуйте ещё раз.', true);
             } finally {
-                // Разблокируем кнопку
+                isSubmitting = false;
                 submitBtn.disabled = false;
                 submitBtn.textContent = originalText;
             }
         });
-
-        // Проверка при загрузке
-        document.addEventListener('DOMContentLoaded', () => {
-            console.log('🔧 Бот настроен. Chat ID:', TELEGRAM_CONFIG.CHAT_ID);
-            console.log('🌐 Текущий домен:', window.location.hostname);
-        });
+    }
+    
+    // ========== ЗАПУСК ==========
+    document.addEventListener('DOMContentLoaded', () => {
+        initRSVPForm();
+        console.log('✅ Форма RSVP готова к отправке в Google Sheets');
+    });
+    
+})();
     </script>
 </body>
 </html>
